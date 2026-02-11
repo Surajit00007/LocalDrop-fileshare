@@ -38,7 +38,7 @@ object FileTransfer {
         android.util.Log.d("FileTransfer", "FileTransfer initialized")
     }
 
-    suspend fun sendFile(fileName: String, bytes: ByteArray) {
+    fun sendFile(fileName: String, bytes: ByteArray) {
         scope.launch {
             try {
                 val fileId = UUID.randomUUID().toString()
