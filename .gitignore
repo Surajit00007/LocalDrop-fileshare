@@ -1,0 +1,59 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+doctor_output*.txt
+status.txt
+
+# Dependencies
+node_modules
+local_drop_app/pubspec.lock
+
+# Build artifacts
+dist-ssr
+*.local
+local_drop_app/build/
+local_drop_app/.dart_tool/
+local_drop_app/android/.gradle/
+local_drop_app/android/app/build/
+local_drop_app/android/app/debug/
+local_drop_app/android/app/release/
+local_drop_app/ios/Pods/
+local_drop_app/windows/build/
+local_drop_app/macos/Pods/
+
+# Flutter/Dart
+local_drop_app/.packages
+local_drop_app/Generated.xcconfig
+local_drop_app/flutter_export_environment.sh
+local_drop_app/.dart_tool/
+local_drop_app/.flutter-plugins
+local_drop_app/.flutter-plugins-dependencies
+
+# Android
+local_drop_app/android/local.properties
+local_drop_app/android/key.properties
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+flutter/
