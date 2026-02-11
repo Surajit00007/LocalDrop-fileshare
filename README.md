@@ -2,7 +2,6 @@
 
 **Local Drop** is a high-performance, local-first file transfer system designed for speed, security, and a premium user experience. Transfer files directly between your Android device and any browser on your local network—zero cloud, zero tracking, maximum speed.
 
-![Local Drop UI Sync](https://img.shields.io/badge/UI-Neon_Emerald_%26_Deep_Black-00E676?style=for-the-badge)
 ![Tech Stack](https://img.shields.io/badge/Powered_By-Flutter_%7C_Kotlin_%7C_WebRTC-00E676?style=for-the-badge)
 
 ## ✨ Premium Features
