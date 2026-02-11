@@ -232,15 +232,28 @@ class _ServerHomePageState extends State<ServerHomePage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Local Drop',
-            style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -1.0,
-              color: Colors.white,
-              shadows: [Shadow(color: Color(0xFF00E676), blurRadius: 20)],
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Local Drop',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -1.0,
+                  color: Colors.white,
+                  shadows: [Shadow(color: Color(0xFF00E676), blurRadius: 20)],
+                ),
+              ),
+              if (_statusMessage.contains('Active') ||
+                  _receivedFiles.isNotEmpty)
+                IconButton(
+                  onPressed: _resetSession,
+                  icon: const Icon(Icons.power_settings_new_rounded),
+                  color: Colors.redAccent,
+                  tooltip: 'Disconnect',
+                ),
+            ],
           ),
           const SizedBox(height: 8),
           Row(
@@ -261,6 +274,21 @@ class _ServerHomePageState extends State<ServerHomePage>
         ],
       ),
     );
+  }
+
+  Future<void> _resetSession() async {
+    try {
+      await _backendChannel.invokeMethod('resetSession');
+      setState(() {
+        _receivedFiles.clear();
+        _lastReceivedFile = '';
+        _verificationCode = null;
+        _statusMessage = 'Ready to share files';
+        _showSuccess = false;
+      });
+    } catch (e) {
+      debugPrint('Error resetting session: $e');
+    }
   }
 
   Widget _buildPulseDot() {

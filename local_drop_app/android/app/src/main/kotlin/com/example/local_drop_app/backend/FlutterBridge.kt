@@ -47,6 +47,11 @@ class FlutterBridge(private val context: Context) {
                     val success = saveToDownloads(fileName)
                     result.success(success)
                 }
+                "resetSession" -> {
+                    // Cleanly close WebRTC session
+                    WebRtcManager.dispose()
+                    result.success(true)
+                }
                 else -> {
                     result.notImplemented()
                 }
