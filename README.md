@@ -8,6 +8,9 @@ Secure, local-only P2P file transfer tool. No cloud, no internet reliance, no si
 - **Security**: PIN-based verification handshake; completely offline operation.
 - **Cross-Platform**: Android host works with any modern browser (Chrome, Safari, Firefox, Edge).
 
+## Download
+Get the latest APK via Telegram: [t.me/LocalDrop_fileshare](https://t.me/LocalDrop_fileshare)
+
 ## Usage
 1. **Launch App**: Open Local Drop on your Android device.
 2. **Connect**: Enter the displayed URL (e.g., `http://192.168.1.5:8080`) in your computer's browser.
