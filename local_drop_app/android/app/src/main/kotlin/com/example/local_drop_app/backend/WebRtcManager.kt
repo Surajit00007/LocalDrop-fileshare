@@ -109,24 +109,37 @@ object WebRtcManager {
                 }
             }
             try {
-                // ICE servers configuration (STUN only, no TURN)
-                val iceServers = listOf(
-                    PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer()
-                )
+                // ICE servers configuration (STUN + TURN fallback support)
+                val iceServers = mutableListOf<PeerConnection.IceServer>()
+                
+                // 1. Google STUN
+                iceServers.add(PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer())
+                
+                // 2. TURN (Configurable placeholder)
+                // iceServers.add(PeerConnection.IceServer.builder("turn:your-turn-server.com")
+                //     .setUsername("user")
+                //     .setPassword("pass")
+                //     .createIceServer())
                 
                 // RTCConfiguration
                 val rtcConfig = PeerConnection.RTCConfiguration(iceServers).apply {
                     sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
                     continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY
                     tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.ENABLED
+                    
+                    // Initial policy: Attempt all (direct/stun/relay)
+                    iceTransportsType = PeerConnection.IceTransportsType.ALL
                 }
                 
                 // PeerConnection observer
                 val observer = object : PeerConnection.Observer {
                     override fun onIceCandidate(candidate: IceCandidate) {
-                        Log.d(TAG, "ICE candidate: ${candidate.sdp}")
+                        // Log candidate type for debugging
+                        // Candidate string format: "candidate:<foundation> <component> <protocol> <priority> <address> <port> typ <type> ..."
+                        val typePart = candidate.sdp.split(" typ ").getOrNull(1)?.split(" ")?.getOrNull(0) ?: "unknown"
+                        Log.d(TAG, "Local ICE candidate generated ($typePart): ${candidate.sdp}")
+                        
                         onIceCandidate?.invoke(candidate)
-                        Log.d(TAG, "Local ICE candidate generated: ${candidate.sdp}")
                     }
                     
                     override fun onDataChannel(dc: DataChannel) {
@@ -153,10 +166,20 @@ object WebRtcManager {
                     override fun onAddTrack(receiver: RtpReceiver, streams: Array<out MediaStream>) {}
                     override fun onConnectionChange(newState: PeerConnection.PeerConnectionState) {
                         Log.d(TAG, "Connection state: $newState")
-                        if (newState == PeerConnection.PeerConnectionState.CONNECTED) {
-                            Log.d(TAG, "PeerConnection is CONNECTED")
-                        } else if (newState == PeerConnection.PeerConnectionState.FAILED) {
-                            Log.w(TAG, "PeerConnection FAILED - check ICE/DTLS logs")
+                        when (newState) {
+                            PeerConnection.PeerConnectionState.CONNECTED -> {
+                                Log.d(TAG, "WebRTC Tunnel Established Successfully")
+                                FlutterBridge.instance?.sendEvent(mapOf("type" to "webrtc_state", "state" to "CONNECTED"))
+                            }
+                            PeerConnection.PeerConnectionState.FAILED -> {
+                                Log.e(TAG, "WebRTC Tunnel FAILED - Check potential NAT/firewall issues")
+                                FlutterBridge.instance?.sendEvent(mapOf("type" to "webrtc_state", "state" to "FAILED"))
+                            }
+                            PeerConnection.PeerConnectionState.DISCONNECTED -> {
+                                Log.w(TAG, "WebRTC Tunnel DISCONNECTED")
+                                FlutterBridge.instance?.sendEvent(mapOf("type" to "webrtc_state", "state" to "DISCONNECTED"))
+                            }
+                            else -> {}
                         }
                     }
                     override fun onSelectedCandidatePairChanged(event: CandidatePairChangeEvent) {}

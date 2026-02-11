@@ -75,12 +75,14 @@ class HttpServer(
                                 assetPath.endsWith(".css") -> io.ktor.http.ContentType.Text.CSS
                                 else -> io.ktor.http.ContentType.Application.OctetStream
                             }
+                            call.response.header(HttpHeaders.CacheControl, "no-store, no-cache, must-revalidate")
                             call.respondBytes(content, contentType)
                         } catch (e: Exception) {
                             if (path == "ws") return@get // Let WebSocket handle this
                             // Fallback to index.html for SPA behavior or return 404
                             try {
                                 val indexContent = this@HttpServer.context.assets.open("www/index.html").readBytes()
+                                call.response.header(HttpHeaders.CacheControl, "no-store, no-cache, must-revalidate")
                                 call.respondBytes(indexContent, io.ktor.http.ContentType.Text.Html)
                             } catch (e2: Exception) {
                                 call.respond(io.ktor.http.HttpStatusCode.NotFound)

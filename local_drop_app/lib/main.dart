@@ -333,40 +333,42 @@ class _ServerHomePageState extends State<ServerHomePage>
   Widget _buildIdleView() {
     return Center(
       key: const ValueKey('idle'),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          ScaleTransition(
-            scale: Tween(begin: 1.0, end: 1.05).animate(_pulseController),
-            child: Container(
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: const Color(0xFF00E676).withOpacity(0.2),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF00E676).withOpacity(0.08),
-                    blurRadius: 80,
-                    spreadRadius: 10,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ScaleTransition(
+              scale: Tween(begin: 1.0, end: 1.05).animate(_pulseController),
+              child: Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFF00E676).withOpacity(0.2),
                   ),
-                ],
-              ),
-              child: const Icon(
-                Icons.bolt_rounded,
-                size: 72,
-                color: Color(0xFF00E676),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF00E676).withOpacity(0.08),
+                      blurRadius: 80,
+                      spreadRadius: 10,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.bolt_rounded,
+                  size: 72,
+                  color: Color(0xFF00E676),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 32),
-          _buildConnectionGuide(),
-          const SizedBox(height: 32),
-          _buildActionButtons(),
-          const SizedBox(height: 24),
-          _buildFeatureList(),
-        ],
+            const SizedBox(height: 32),
+            _buildConnectionGuide(),
+            const SizedBox(height: 32),
+            _buildActionButtons(),
+            const SizedBox(height: 24),
+            _buildFeatureList(),
+          ],
+        ),
       ),
     );
   }

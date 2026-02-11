@@ -34,3 +34,12 @@ flutter build apk --release
 
 ## License
 MIT License. Open source and free to use.
+
+## Notes
+- Ensure your Android device and computer are connected to the same local network for optimal performance.
+- The PIN-based verification provides a basic layer of security suitable for local network use.
+- Files are transferred directly to your Android device's storage without any intermediate processing.
+
+## Developer
+**Developed by**: surajitsahoo  
+**Email**: onlyforcode007@gmail.com
