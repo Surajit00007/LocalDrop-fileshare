@@ -12,6 +12,48 @@
 
 ---
 
+## 🎯 How to Use Local Drop (End User Guide)
+
+Follow these simple steps to transfer files between your Android device and any computer/browser on your local network:
+
+### **Prerequisites**
+- Android device (API 24+) with the Local Drop app installed
+- Computer/laptop on the same WiFi network
+- Any modern web browser (Chrome, Firefox, Safari, Edge, etc.)
+
+### **Step 1: Launch the App**
+1. Open the **Local Drop** app on your Android device
+2. The app will start a local server and display:
+   - **Connection URL** (e.g., `http://192.168.1.5:8080`)
+   - **Security Code** (e.g., `42`)
+
+### **Step 2: Open Browser on Computer**
+1. On your computer, open any web browser
+2. Enter the connection URL shown on your phone into the address bar
+3. Press Enter — you'll see the **Local Drop receiver interface**
+
+### **Step 3: Verify Connection**
+1. In the browser, click **"Connect WebSocket"**
+2. After connection, you'll see a list of verification codes
+3. **Match the code** with the one shown on your Android device and click it
+4. Once verified, the status will show **"Auth: verified"**
+
+### **Step 4: Start WebRTC**
+1. Click **"Start WebRTC"** button in the browser
+2. Wait for the connection status to change to **"RTC: connected"**
+3. The "Send File" button will now be enabled
+
+### **Step 5: Transfer Files**
+1. Click the file input field or **drag & drop** files into the interface
+2. Click **"Send"** to transfer the file
+3. Watch the progress bar — the file is being sent directly to your phone over WebRTC
+4. Files are saved to your phone's internal storage automatically
+
+### **Complete!**
+Your file is now on your Android device. Repeat steps 5 for more files. No cloud, no delays, pure P2P speed! 🚀
+
+---
+
 ## 🛠️ Step-by-Step Guide
 
 ### 1. Initialize
