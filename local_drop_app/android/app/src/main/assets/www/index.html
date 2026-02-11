@@ -701,6 +701,7 @@
     // --- WebRTC Logic ---
     async function startWebRtc() {
       setStatus('NEGOTIATING P2P...');
+      await createPeerConnection(); // Ensure PC is ready before asking for offer
       ws.send(JSON.stringify({ type: 'start_webrtc' }));
     }
 
@@ -853,14 +854,68 @@
 
     // --- WebRTC Helpers ---
     async function handleOffer(sdp) {
-      await createPeerConnection();
+      if (!pc) await createPeerConnection(); // Ensure PC exists
       await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
+      remoteDescriptionSet = true;
+
+      // Drain pending candidates
+      while (pendingCandidates.length) {
+        const c = pendingCandidates.shift();
+        try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (e) { console.error(e); }
+      }
+
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       ws.send(JSON.stringify({ type: 'answer', sdp: answer.sdp }));
     }
-    async function handleAnswer(sdp) { await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp })); }
-    function handleIce(msg) { pc.addIceCandidate(new RTCIceCandidate({ candidate: msg.candidate, sdpMid: msg.sdpMid, sdpMLineIndex: msg.sdpMLineIndex })); }
+
+    async function createPeerConnection() {
+      if (pc) return pc;
+
+      // Reset state on new connection
+      pendingCandidates = [];
+      remoteDescriptionSet = false;
+
+      const conf = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+      pc = new RTCPeerConnection(conf);
+
+      pc.onicecandidate = (ev) => {
+        if (ev.candidate) ws.send(JSON.stringify({
+          type: 'ice_candidate',
+          candidate: ev.candidate.candidate,
+          sdpMid: ev.candidate.sdpMid,
+          sdpMLineIndex: ev.candidate.sdpMLineIndex
+        }));
+      };
+
+      pc.ondatachannel = (ev) => setupDataChannel(ev.channel);
+
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === 'connected') setStatus('SECURE TUNNEL ACTIVE');
+        else if (pc.connectionState === 'disconnected') handleDisconnect();
+      };
+
+      return pc;
+    }
+
+    async function handleAnswer(sdp) {
+      await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp }));
+      remoteDescriptionSet = true;
+    }
+
+    function handleIce(msg) {
+      const candidate = new RTCIceCandidate({
+        candidate: msg.candidate,
+        sdpMid: msg.sdpMid,
+        sdpMLineIndex: msg.sdpMLineIndex
+      });
+
+      if (!pc || !remoteDescriptionSet) {
+        pendingCandidates.push(candidate);
+      } else {
+        pc.addIceCandidate(candidate).catch(e => console.error(e));
+      }
+    }
 
   </script>
 </body>
