@@ -4,6 +4,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-store" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>Local Drop — Secure Transfer</title>
   <meta name="description" content="Local network file transfer — no cloud, no signup." />
   <link rel="icon" href="/local-drop-favicon.png" type="image/png" />
@@ -269,20 +272,20 @@
     .action-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
+      gap: 8px;
       margin-bottom: 24px;
     }
 
     .action-btn {
       border: none;
-      border-radius: 18px;
-      padding: 12px;
+      border-radius: 14px;
+      padding: 10px;
       cursor: pointer;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: 80px;
+      min-height: 64px;
       transition: transform 0.18s ease;
       position: relative;
       overflow: hidden;
@@ -319,21 +322,34 @@
     }
 
     .btn-icon-large {
-      font-size: 22px;
-      margin-bottom: 8px;
+      font-size: 18px;
+      margin-bottom: 6px;
     }
 
     .btn-label {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
-      letter-spacing: 0.4px;
+      letter-spacing: 0.3px;
     }
 
     @media (max-width: 520px) {
-      .action-row { gap: 8px; }
-      .action-btn { min-height: 64px; padding: 8px; border-radius: 14px; }
-      .btn-icon-large { font-size: 18px; }
-      .btn-label { font-size: 11px; }
+      .action-row {
+        gap: 6px;
+      }
+
+      .action-btn {
+        min-height: 44px;
+        padding: 6px;
+        border-radius: 12px;
+      }
+
+      .btn-icon-large {
+        font-size: 14px;
+      }
+
+      .btn-label {
+        font-size: 9px;
+      }
     }
 
     /* Pins & Progress */
@@ -511,7 +527,7 @@
       <div class="feature-list">
         <div class="feature-pill">Encrypted P2P</div>
         <div class="feature-pill">Zero Cloud</div>
-        <div class="feature-pill">Unlimited Size</div>
+        <div class="feature-pill" id="verDisplay">v1.0.8</div>
       </div>
     </div>
 
@@ -548,7 +564,7 @@
         <!-- Receive Button (Visual Only or Status) -->
         <button id="receiveBtn" class="action-btn btn-receive">
           <span class="material-icons-round btn-icon-large">download_for_offline</span>
-          <span class="btn-label">RECEIVE MODE</span>
+          <span class="btn-label">RECEIVE FILE</span>
         </button>
       </div>
 
@@ -585,12 +601,112 @@
   <button id="webrtcBtn" style="display:none"></button>
 
   <script>
+    // --- WebRTC Configuration ---
+    // Default STUN server
+    const DEFAULT_STUN = { urls: 'stun:stun.l.google.com:19302' };
+    // Attempt to load TURN servers from (in order): URL `turn` param (JSON),
+    // global `window.LOCAL_DROP_TURN`, or localStorage `localdrop_turn`.
+    function loadTurnServers() {
+      try {
+        // URL param ?turn=<json-encoded-array>
+        const params = new URLSearchParams(location.search);
+        if (params.has('turn')) {
+          const raw = params.get('turn');
+          const parsed = JSON.parse(decodeURIComponent(raw));
+          if (Array.isArray(parsed)) return parsed;
+        }
+
+        // Window-global config
+        if (window.LOCAL_DROP_TURN) {
+          if (Array.isArray(window.LOCAL_DROP_TURN)) return window.LOCAL_DROP_TURN;
+        }
+
+        // localStorage (stringified JSON)
+        const ls = localStorage.getItem('localdrop_turn');
+        if (ls) {
+          const p = JSON.parse(ls);
+          if (Array.isArray(p)) return p;
+        }
+      } catch (e) { console.warn('Failed to parse TURN servers config', e); }
+      return [];
+    }
+
+    const TURN_SERVERS = [
+      {
+        urls: [
+          "turn:YOUR_TURN_SERVER:3478?transport=udp",
+          "turn:YOUR_TURN_SERVER:3478?transport=tcp"
+        ],
+        username: "YOUR_USERNAME",
+        credential: "YOUR_CREDENTIAL"
+      }
+    ];
+
+    function getIceServers() {
+      const turnServers = loadTurnServers();
+      const servers = [DEFAULT_STUN];
+      if (turnServers.length) servers.push(...turnServers);
+      else servers.push(...TURN_SERVERS); // Add default TURN servers if none are configured
+      return servers;
+    }
+
+    // Current rtcConfig; iceServers are resolved at negotiation time so TURN can be
+    // provided at runtime without editing the file.
+    let rtcConfig = {
+      iceServers: getIceServers(),
+      iceTransportPolicy: 'all' // Default: try all paths (direct preferred)
+    };
+
+    // Helper: parse candidate type (host/srflx/prflx/relay)
+    function parseCandidateType(candidateStr) {
+      try {
+        const m = candidateStr.match(/\btyp\s+(\w+)/i);
+        return m ? m[1] : 'unknown';
+      } catch (e) { return 'unknown'; }
+    }
+
+    // ICE timeout handling: if ICE stays stuck in 'checking' for too long,
+    // trigger relay-only retry.
+    let iceTimeoutTimer = null;
+    function startIceTimeout(timeoutMs = 15000) {
+      clearIceTimeout();
+      iceTimeoutTimer = setTimeout(() => {
+        if (!pc) return;
+        const s = pc.iceConnectionState;
+        if (s === 'checking' || s === 'new') {
+          console.warn('ICE appears stuck (state=', s, '). Triggering relay retry.');
+          handleIceFailure();
+        }
+      }, timeoutMs);
+    }
+
+    function clearIceTimeout() { if (iceTimeoutTimer) { clearTimeout(iceTimeoutTimer); iceTimeoutTimer = null; } }
+
+    // Update status text with optional details (connection/ice state)
+    function updateStatusWithDetails(base, details) {
+      if (details) els.statusText.textContent = `${base} • ${details}`;
+      else els.statusText.textContent = base;
+    }
+
+    // Prevent double initialization when page is accidentally included twice
+    if (window.LOCAL_DROP_INITIALIZED) {
+      console.warn('Local Drop script already initialized, skipping duplicate run.');
+    } else {
+      window.LOCAL_DROP_INITIALIZED = true;
+    }
+
+    // --- App Info ---
+    const APP_VERSION = "1.0.8-RELAY-FIX";
+    console.log(`%c Local Drop v${APP_VERSION} initialized `, "background: #00E676; color: #000; font-weight: bold;");
+    console.log('Initial ICE servers:', rtcConfig.iceServers);
+
     // --- Core Logic ---
     let ws = null;
     let pc = null;
     let dataChannel = null;
     let remoteDescriptionSet = false;
     let pendingCandidates = [];
+    let isRetryingRelay = false;
     const receivedFilesStore = {};
 
     const host = window.location.hostname;
@@ -639,10 +755,54 @@
       }
     }
 
+    // --- TURN Config UI (hidden by default) ---
+    // Adds a small inline UI under the connect section so users can paste TURN JSON.
+    (function injectTurnUi() {
+      const container = document.createElement('div');
+      container.id = 'turnConfig';
+      container.style.display = 'none';
+      container.style.marginTop = '12px';
+      container.innerHTML = `
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">TURN Servers (JSON array)</div>
+        <textarea id="turnInput" style="width:100%; height:80px; background:rgba(0,0,0,0.25); color:var(--text-main); border-radius:8px; border:1px solid rgba(255,255,255,0.04); padding:8px; font-family:monospace;"></textarea>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button id="saveTurnBtn" style="flex:1; padding:10px; border-radius:8px; background:var(--accent-blue); color:white; border:none;">Save TURN</button>
+          <button id="showTurnBtn" style="padding:10px; border-radius:8px; background:rgba(255,255,255,0.04); color:var(--text-main); border:1px solid rgba(255,255,255,0.04);">Show</button>
+        </div>
+      `;
+      const cs = document.getElementById('connectSection');
+      if (cs) cs.appendChild(container);
+
+      document.addEventListener('click', (e) => {
+        if (e.target && e.target.id === 'saveTurnBtn') {
+          const txt = document.getElementById('turnInput').value.trim();
+          try {
+            const parsed = JSON.parse(txt);
+            if (!Array.isArray(parsed)) throw new Error('Not an array');
+            localStorage.setItem('localdrop_turn', JSON.stringify(parsed));
+            rtcConfig.iceServers = getIceServers();
+            console.log('Saved TURN servers:', rtcConfig.iceServers);
+            alert('TURN servers saved. Reconnect to apply.');
+          } catch (err) { alert('Invalid JSON for TURN servers. Provide an array.'); }
+        }
+        if (e.target && e.target.id === 'showTurnBtn') {
+          const cur = localStorage.getItem('localdrop_turn') || '';
+          const ta = document.getElementById('turnInput');
+          ta.value = cur || '';
+          const container = document.getElementById('turnConfig');
+          container.style.display = container.style.display === 'none' ? 'block' : 'none';
+        }
+      });
+    })();
+
     // --- Verification Flow ---
     els.connectBtn.onclick = () => {
       if (ws && ws.readyState === WebSocket.OPEN) return;
-      const url = `ws://${host}:${port}/ws`;
+
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const url = `${protocol}//${host}:${port}/ws`;
+
+      console.log(`[WS] Connecting to ${url}...`);
       ws = new WebSocket(url);
       setStatus('CONNECTING...');
 
@@ -707,33 +867,118 @@
 
     // --- WebRTC Logic ---
     async function startWebRtc() {
+      console.log("[P2P] Starting WebRTC Handshake...");
       setStatus('NEGOTIATING P2P...');
+      // Refresh iceServers so runtime TURN config is respected
+      rtcConfig.iceServers = getIceServers();
       await createPeerConnection(); // Ensure PC is ready before asking for offer
+      startIceTimeout(15000);
       ws.send(JSON.stringify({ type: 'start_webrtc' }));
     }
 
     async function createPeerConnection() {
       if (pc) return pc;
-      const conf = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
-      pc = new RTCPeerConnection(conf);
+
+      // Reset state on new connection (if not retrying)
+      if (!isRetryingRelay) {
+        pendingCandidates = [];
+        remoteDescriptionSet = false;
+      }
+
+      console.log('Creating PeerConnection with config:', rtcConfig);
+      pc = new RTCPeerConnection(rtcConfig);
 
       pc.onicecandidate = (ev) => {
-        if (ev.candidate) ws.send(JSON.stringify({
-          type: 'ice_candidate',
-          candidate: ev.candidate.candidate,
-          sdpMid: ev.candidate.sdpMid,
-          sdpMLineIndex: ev.candidate.sdpMLineIndex
-        }));
+        if (ev.candidate) {
+          const type = parseCandidateType(ev.candidate.candidate);
+          console.log(`Local ICE Candidate (${type}):`, ev.candidate.candidate);
+
+          ws.send(JSON.stringify({
+            type: 'ice_candidate',
+            candidate: ev.candidate.candidate,
+            sdpMid: ev.candidate.sdpMid,
+            sdpMLineIndex: ev.candidate.sdpMLineIndex
+          }));
+        }
       };
 
       pc.ondatachannel = (ev) => setupDataChannel(ev.channel);
 
       pc.onconnectionstatechange = () => {
-        if (pc.connectionState === 'connected') setStatus('SECURE TUNNEL ACTIVE');
-        else if (pc.connectionState === 'disconnected') handleDisconnect();
+        console.log('WebRTC Connection State:', pc.connectionState);
+        clearIceTimeout();
+
+        switch (pc.connectionState) {
+          case 'connected':
+            setStatus('SECURE TUNNEL ACTIVE');
+            isRetryingRelay = false;
+            updateStatusWithDetails('SECURE TUNNEL ACTIVE', `conn:${pc.connectionState} ice:${pc.iceConnectionState}`);
+            break;
+          case 'failed':
+            updateStatusWithDetails('P2P FAILURE', `conn:${pc.connectionState} ice:${pc.iceConnectionState}`);
+            handleIceFailure();
+            break;
+          case 'disconnected':
+            if (!isRetryingRelay) setStatus('CONNECTION LOST');
+            updateStatusWithDetails('CONNECTION LOST', `conn:${pc.connectionState} ice:${pc.iceConnectionState}`);
+            break;
+          default:
+            updateStatusWithDetails('NEGOTIATING P2P...', `conn:${pc.connectionState} ice:${pc.iceConnectionState}`);
+        }
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        console.log('ICE Connection State:', pc.iceConnectionState);
+        if (pc.iceConnectionState === 'failed') handleIceFailure();
+        updateStatusWithDetails(els.statusText.textContent || 'STATUS', `ice:${pc.iceConnectionState}`);
       };
 
       return pc;
+    }
+
+    async function handleIceFailure() {
+      if (isRetryingRelay) {
+        console.error('WebRTC Connection failed even with Relay policy.');
+        setStatus('P2P FAILURE');
+        return;
+      }
+      console.warn('ICE connection failed. Evaluating relay retry...');
+
+      // Check if we have TURN servers configured — relay will not work without TURN
+      const servers = getIceServers();
+      const hasTurn = servers.some(s => {
+        try {
+          const urls = s.urls || s.url || [];
+          if (Array.isArray(urls)) return urls.some(u => String(u).startsWith('turn:'));
+          return String(urls).startsWith('turn:');
+        } catch (e) { return false; }
+      });
+
+      if (!hasTurn) {
+        console.error('No TURN servers configured; cannot retry with relay.');
+        setStatus('NO TURN CONFIGURED — CANNOT RELAY');
+        // Reveal TURN config UI so user can paste credentials
+        const tc = document.getElementById('turnConfig');
+        if (tc) tc.style.display = 'block';
+        return;
+      }
+
+      // Proceed with relay retry
+      console.warn('Retrying with Relay-only policy...');
+      setStatus('RETRYING (RELAY)...');
+
+      isRetryingRelay = true;
+      if (pc) pc.close();
+      pc = null;
+
+      // Refresh and force relay
+      rtcConfig.iceServers = getIceServers();
+      rtcConfig.iceTransportPolicy = 'relay';
+
+      // Re-initiate from scratch
+      await createPeerConnection();
+      startIceTimeout(15000);
+      ws.send(JSON.stringify({ type: 'start_webrtc' }));
     }
 
     function setupDataChannel(dc) {
@@ -876,35 +1121,6 @@
       ws.send(JSON.stringify({ type: 'answer', sdp: answer.sdp }));
     }
 
-    async function createPeerConnection() {
-      if (pc) return pc;
-
-      // Reset state on new connection
-      pendingCandidates = [];
-      remoteDescriptionSet = false;
-
-      const conf = { iceServers: [] }; // Force local network candidates only
-      pc = new RTCPeerConnection(conf);
-
-      pc.onicecandidate = (ev) => {
-        if (ev.candidate) ws.send(JSON.stringify({
-          type: 'ice_candidate',
-          candidate: ev.candidate.candidate,
-          sdpMid: ev.candidate.sdpMid,
-          sdpMLineIndex: ev.candidate.sdpMLineIndex
-        }));
-      };
-
-      pc.ondatachannel = (ev) => setupDataChannel(ev.channel);
-
-      pc.onconnectionstatechange = () => {
-        if (pc.connectionState === 'connected') setStatus('SECURE TUNNEL ACTIVE');
-        else if (pc.connectionState === 'disconnected') handleDisconnect();
-      };
-
-      return pc;
-    }
-
     async function handleAnswer(sdp) {
       await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp }));
       remoteDescriptionSet = true;
@@ -916,6 +1132,9 @@
         sdpMid: msg.sdpMid,
         sdpMLineIndex: msg.sdpMLineIndex
       });
+
+      const type = parseCandidateType(msg.candidate || '');
+      console.log(`Remote ICE Candidate (${type}):`, msg.candidate);
 
       if (!pc || !remoteDescriptionSet) {
         pendingCandidates.push(candidate);
