@@ -228,7 +228,7 @@ class _ServerHomePageState extends State<ServerHomePage>
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -303,49 +303,46 @@ class _ServerHomePageState extends State<ServerHomePage>
   Widget _buildIdleView() {
     return Center(
       key: const ValueKey('idle'),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ScaleTransition(
-              scale: Tween(begin: 1.0, end: 1.05).animate(_pulseController),
-              child: Container(
-                padding: const EdgeInsets.all(40),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFF00E676).withOpacity(0.2),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ScaleTransition(
+            scale: Tween(begin: 1.0, end: 1.05).animate(_pulseController),
+            child: Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFF00E676).withOpacity(0.2),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF00E676).withOpacity(0.08),
+                    blurRadius: 80,
+                    spreadRadius: 10,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF00E676).withOpacity(0.05),
-                      blurRadius: 100,
-                      spreadRadius: 20,
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.bolt_rounded,
-                  size: 80,
-                  color: Color(0xFF00E676),
-                ),
+                ],
+              ),
+              child: const Icon(
+                Icons.bolt_rounded,
+                size: 72,
+                color: Color(0xFF00E676),
               ),
             ),
-            const SizedBox(height: 48),
-            _buildConnectionGuide(),
-            const SizedBox(height: 48),
-            _buildFeatureList(),
-            const SizedBox(height: 32),
-          ],
-        ),
+          ),
+          const SizedBox(height: 32),
+          _buildConnectionGuide(),
+          const SizedBox(height: 32),
+          _buildFeatureList(),
+        ],
       ),
     );
   }
 
   Widget _buildConnectionGuide() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 40),
-      padding: const EdgeInsets.all(28),
+      margin: const EdgeInsets.symmetric(horizontal: 32),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: const Color(0xFF00E676).withOpacity(0.05),
         borderRadius: BorderRadius.circular(32),
@@ -654,7 +651,7 @@ class _FeatureItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 60),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 54),
       child: Row(
         children: [
           Icon(icon, color: const Color(0xFF00E676), size: 24),
