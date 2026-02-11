@@ -55,7 +55,63 @@ This project uses **AGP 8.2.1** and **Kotlin 1.9.22** for maximum compatibility 
 
 ---
 
-## 🛡️ Privacy & Security
+## � Repository Structure
+
+```
+local-file-drop-main/
+├── dist/                                          # Web frontend distribution
+│   └── index.html                                 # Main UI (Edit for frontend)
+│
+├── local_drop_app/                                # Flutter mobile app root
+│   ├── lib/                                       # Dart/Flutter app logic
+│   ├── pubspec.yaml                               # Flutter dependencies
+│   │
+│   └── android/                                   # Android-specific code
+│       └── app/
+│           ├── build.gradle.kts                   # Android build config
+│           ├── libs/
+│           │   └── libwebrtc.aar                  # Google WebRTC binary
+│           └── src/main/
+│               ├── kotlin/com/example/local_drop_app/backend/
+│               │   ├── HttpServer.kt              # Ktor HTTP/WebSocket server
+│               │   ├── WebRtcManager.kt           # WebRTC P2P signaling & DataChannel
+│               │   ├── FileTransfer.kt            # Chunked file protocol handler
+│               │   ├── VerificationManager.kt     # Numeric code verification
+│               │   ├── LocalTransferService.kt    # Foreground service
+│               │   └── SignalingMessage.kt        # JSON signaling types
+│               │
+│               └── assets/www/                    # Static HTML served by server
+│                   └── index.html                 # Frontend served to browser
+│
+└── README.md                                      # This file
+```
+
+### Where to Edit
+
+#### 🎨 **Frontend UI** → `dist/index.html`
+- Modify the visual interface, colors, layouts, buttons
+- Change verification flow or WebRTC controls UI
+- Add new file upload features or progress indicators
+- **Note**: After editing, sync to `local_drop_app/android/app/src/main/assets/www/index.html` before building APK
+
+#### 🔧 **Backend Logic** → `local_drop_app/android/app/src/main/kotlin/com/example/local_drop_app/backend/`
+- **HttpServer.kt**: Ktor server setup, WebSocket signaling routes, asset serving
+- **WebRtcManager.kt**: PeerConnection lifecycle, DataChannel creation, ICE candidate handling
+- **FileTransfer.kt**: Chunked file protocol, base64 encoding/decoding, assembly logic
+- **VerificationManager.kt**: Numeric code generation, challenge options, session tracking
+- **SignalingMessage.kt**: JSON message types for WebRTC handshake and file transfer
+
+#### 📱 **Flutter App** → `local_drop_app/lib/main.dart`
+- Modify Flutter UI, native event handling
+- Change app theme or create platform-specific UI
+
+#### 🔨 **Build Configuration**
+- `local_drop_app/android/app/build.gradle.kts`: Kotlin version, dependencies, SDK versions
+- `local_drop_app/pubspec.yaml`: Flutter and Dart dependencies
+
+---
+
+## �🛡️ Privacy & Security
 - **Local Network Only**: No data ever leaves your WiFi.
 - **No Cloud Metadata**: Filenames and sizes are only shared over the local signaling socket.
 - **Open Architecture**: Direct WebRTC tunnels ensure your ISP or third parties cannot "sniff" the data during transfer.
