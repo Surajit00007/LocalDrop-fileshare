@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:ui' as import_ui;
+import 'dart:io';
+import 'package:file_picker/file_picker.dart' as file_picker;
 
 void main() {
   // Use a dark system navigation bar to match the brand
@@ -361,6 +363,8 @@ class _ServerHomePageState extends State<ServerHomePage>
           const SizedBox(height: 32),
           _buildConnectionGuide(),
           const SizedBox(height: 32),
+          _buildActionButtons(),
+          const SizedBox(height: 24),
           _buildFeatureList(),
         ],
       ),
@@ -435,6 +439,108 @@ class _ServerHomePageState extends State<ServerHomePage>
         ],
       ),
     );
+  }
+
+  Widget _buildActionButtons() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildActionButton(
+              label: 'SHARE',
+              icon: Icons.upload_rounded,
+              color: const Color(0xFF2979FF),
+              onTap: _pickAndSendFile,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: _buildActionButton(
+              label: 'RECEIVE',
+              icon: Icons.download_rounded,
+              color: const Color(0xFF00E676),
+              onTap: () {
+                _showFlashMessage(
+                  'Receiver mode active',
+                  const Color(0xFF00E676),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withOpacity(0.3), width: 2),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 32),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndSendFile() async {
+    try {
+      // Use file_picker to select multiple files
+      final result = await file_picker.FilePicker.platform.pickFiles(
+        type: file_picker.FileType.any,
+        allowMultiple: true,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        for (final file in result.files) {
+          final fileName = file.name;
+          final filePath = file.path;
+
+          if (filePath != null) {
+            // Read file bytes and send via backend
+            final fileBytes = await File(filePath).readAsBytes();
+            final success = await _backendChannel.invokeMethod(
+              'sendFileToLaptop',
+              {'name': fileName, 'bytes': fileBytes},
+            );
+
+            if (success == true) {
+              _showFlashMessage('Sent: $fileName', const Color(0xFF2979FF));
+            } else {
+              _showFlashMessage('Failed: $fileName', Colors.redAccent);
+            }
+          }
+        }
+      } else {
+        _showFlashMessage('No files selected', Colors.orange);
+      }
+    } catch (e) {
+      _showFlashMessage('Error: ${e.toString()}', Colors.redAccent);
+    }
   }
 
   Widget _buildFeatureList() {

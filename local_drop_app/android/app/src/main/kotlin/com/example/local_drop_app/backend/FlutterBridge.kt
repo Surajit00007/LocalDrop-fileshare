@@ -52,6 +52,15 @@ class FlutterBridge(private val context: Context) {
                     WebRtcManager.dispose()
                     result.success(true)
                 }
+                "sendFileToLaptop" -> {
+                    val fileName = call.argument<String>("name") ?: ""
+                    val bytes = call.argument<ByteArray>("bytes")
+                    if (fileName.isEmpty() || bytes == null) {
+                        result.error("ERROR", "Invalid file data", null)
+                        return@setMethodCallHandler
+                    }
+                    sendFileToLaptop(fileName, bytes, result)
+                }
                 else -> {
                     result.notImplemented()
                 }
@@ -154,6 +163,17 @@ class FlutterBridge(private val context: Context) {
             context.startForegroundService(intent)
         } else {
             context.startService(intent)
+        }
+    }
+
+    private fun sendFileToLaptop(fileName: String, bytes: ByteArray, result: MethodChannel.Result) {
+        try {
+            // Send via FileTransfer
+            FileTransfer.sendFile(fileName, bytes)
+            result.success(true)
+        } catch (e: Exception) {
+            android.util.Log.e("FlutterBridge", "Failed to send file", e)
+            result.error("ERROR", "Failed to send file: ${e.message}", null)
         }
     }
 
