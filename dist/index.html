@@ -1027,8 +1027,11 @@
       const input = document.getElementById('fileInput');
       if (!input.files.length || !dataChannel || dataChannel.readyState !== 'open') return;
 
+      const uploadedFiles = [];
+
       for (let k = 0; k < input.files.length; k++) {
         const file = input.files[k];
+        uploadedFiles.push(file);
         const chunkSize = 16 * 1024;
         const total = Math.ceil(file.size / chunkSize);
         const fileId = Date.now() + '-' + k;
@@ -1142,6 +1145,88 @@
         pc.addIceCandidate(candidate).catch(e => console.error(e));
       }
     }
+
+    // Include QR Code library
+    const script = document.createElement('script');
+    script.src = "https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js";
+    document.head.appendChild(script);
+
+    // Function to generate QR code for uploaded files
+    function generateQRCodeForFiles(files) {
+      const fileLinks = files.map(file => `${window.location.origin}/uploads/${file.name}`);
+      const qrData = JSON.stringify(fileLinks);
+
+      QRCode.toDataURL(qrData, { width: 300, margin: 2 }, (err, url) => {
+        if (err) {
+          console.error('Failed to generate QR code:', err);
+          return;
+        }
+
+        const qrContainer = document.getElementById('qrCodeContainer');
+        qrContainer.innerHTML = `<img src="${url}" alt="QR Code for Files" style="max-width:100%;" />`;
+        qrContainer.style.display = 'block';
+      });
+    }
+
+    // Modify file upload logic to include QR code generation
+    async function sendSelectedFile() {
+      const input = document.getElementById('fileInput');
+      if (!input.files.length || !dataChannel || dataChannel.readyState !== 'open') return;
+
+      const uploadedFiles = [];
+
+      for (let k = 0; k < input.files.length; k++) {
+        const file = input.files[k];
+        uploadedFiles.push(file);
+        const chunkSize = 16 * 1024;
+        const total = Math.ceil(file.size / chunkSize);
+        const fileId = Date.now() + '-' + k;
+
+        els.progressBox.style.display = 'block';
+        els.progLabel.textContent = 'Sending: ' + file.name;
+
+        dataChannel.send(JSON.stringify({ type: 'file_meta', fileId, name: file.name, size: file.size, chunkSize, totalChunks: total }));
+
+        for (let i = 0; i < total; i++) {
+          const start = i * chunkSize;
+          const end = Math.min(file.size, start + chunkSize);
+          const blob = file.slice(start, end);
+          const arr = await blob.arrayBuffer();
+          let bin = '';
+          const u = new Uint8Array(arr);
+          for (let j = 0; j < u.length; j++) bin += String.fromCharCode(u[j]);
+
+          dataChannel.send(JSON.stringify({
+            type: 'file_chunk',
+            fileId,
+            seq: i,
+            data: btoa(bin)
+          }));
+
+          const pct = Math.round(((i + 1) / total) * 100);
+          els.progFill.style.width = pct + '%';
+          els.progPct.textContent = pct + '%';
+        }
+
+        dataChannel.send(JSON.stringify({ type: 'file_complete', fileId }));
+        addFileToList({ name: file.name, size: file.size, url: null }, false); // False for Outgoing
+      }
+
+      els.progressBox.style.display = 'none';
+      input.value = '';
+      // Generate QR code for uploaded files
+      generateQRCodeForFiles(uploadedFiles);
+    }
+
+    // Add a container for the QR code in the UI
+    const qrCodeSection = document.createElement('div');
+    qrCodeSection.id = 'qrCodeContainer';
+    qrCodeSection.style.display = 'none';
+    qrCodeSection.style.marginTop = '20px';
+    qrCodeSection.style.textAlign = 'center';
+    qrCodeSection.innerHTML = '<p>Scan this QR code to download files:</p>';
+    const rightPanel = document.querySelector('.right-panel');
+    if (rightPanel) rightPanel.appendChild(qrCodeSection);
 
   </script>
 </body>

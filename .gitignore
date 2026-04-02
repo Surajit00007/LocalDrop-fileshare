@@ -57,3 +57,6 @@ local_drop_app/android/key.properties
 Thumbs.db
 
 flutter/
+
+# Local Netlify folder
+.netlify

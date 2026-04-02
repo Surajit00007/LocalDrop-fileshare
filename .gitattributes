@@ -1,6 +1,5 @@
 # Auto detect text files and normalize line endings to LF
 * text=auto
-
 # Code files
 *.kt text eol=lf
 *.java text eol=lf
@@ -24,5 +23,6 @@
 *.jpeg binary
 *.gif binary
 *.ico binary
+localdrop_andriod/device_apk_extracted/assets/flutter_assets/kernel_blob.bin filter=lfs diff=lfs merge=lfs -text
 *.bin filter=lfs diff=lfs merge=lfs -text
 *.apk filter=lfs diff=lfs merge=lfs -text

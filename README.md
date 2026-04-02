@@ -1,45 +1,80 @@
-# Local Drop
+# Local Drop — Secure & Fast File Sharing ⚡
 
-Secure, local-only P2P file transfer tool. No cloud, no internet reliance, no signup/login required.
+A high-fidelity, premium file sharing platform designed for both ultra-fast local network transfers and cloud-native secure sharing. Experience seamless, PIN-verified file transfers with zero setup.
 
-## Features
-- **Local Network Speed**: Utilizes full LAN bandwidth via WebRTC DataChannels.
-- **Zero Configuration**: Automatic local server discovery; no setup required.
-- **Security**: PIN-based verification handshake; completely offline operation.
-- **Cross-Platform**: Android host works with any modern browser (Chrome, Safari, Firefox, Edge).
+[![Netlify Status](https://api.netlify.com/api/v1/badges/your-site-id/deploy-status)](https://app.netlify.com/)
 
-## Download
-Get the latest APK via Telegram: [t.me/LocalDrop_fileshare](https://t.me/LocalDrop_fileshare)
+---
 
-## Usage
-1. **Launch App**: Open Local Drop on your Android device.
-2. **Connect**: Enter the displayed URL (e.g., `http://192.168.1.5:8080`) in your computer's browser.
-3. **Verify**: Match the PIN code on your device to the one shown in the browser to authorize the session.
-4. **Transfer**: Drag and drop files into the browser window. Files are saved directly to your device's storage.
+## 🏗️ Project Architecture
 
-## Installation from Source
-**Prerequisites**: Flutter SDK, Android SDK 34+, Java 17.
+Local Drop has evolved into two powerful ecosystems:
 
+### 1. 🚀 Cloud-Native Web App (New)
+**Location**: `/localdrop_webapp`  
+Built for the modern web, this version is designed for deployment on **Netlify**.
+- **Technology**: React 19 + Vite + TypeScript.
+- **Backend**: Netlify Functions (Serverless).
+- **Storage**: Netlify Blobs for global reach.
+- **Key Features**:
+    - **Chunked Transfers**: Reconstructs large files in the browser via 4MB chunks, bypassing serverless limits.
+    - **High-Fidelity UI**: Premium Glassmorphism design with a split-panel layout.
+    - **Human-in-the-Loop Security**: Sender generates a random 2-digit PIN; Receiver must unlock via a 4-option decoy grid.
+    - **QR Sharing**: Instant QR code generation for mobile-to-desktop or mobile-to-mobile drops.
+
+### 2. 👋 Local P2P Android Tool (Original)
+**Location**: `/localdrop_andriod`  
+The classic, ultra-secure local-only P2P transfer utility.
+- **Technology**: Flutter / WebRTC.
+- **Security**: Direct P2P tunnel; data never leaves your local LAN.
+- **Speed**: Limited only by your router's hardware.
+
+---
+
+## ⚡ Quick Start (Web App)
+
+### Prerequisites
+- Node.js 20+
+- Netlify CLI (`npm install -g netlify-cli`)
+
+### Local Development
+1. Navigate to the webapp directory:
+   ```bash
+   cd localdrop_webapp
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Run with Netlify Dev (simulates Blobs & Functions):
+   ```bash
+   npx netlify dev
+   ```
+
+### Deployment
+Experience one-click deployment to Netlify:
 ```bash
-git clone https://github.com/Surajit00007/LocalDrop-fileshare.git
-cd local_drop_app
-flutter pub get
-flutter build apk --release
+npx netlify deploy --build --prod
 ```
 
-## Privacy & Security
-- **Data Isolation**: All traffic remains strictly within your local network (LAN).
-- **Encryption**: WebRTC implementation uses standard DTLS encryption for data in transit.
-- **Ephemeral**: No metadata or file data is ever stored on external servers.
+---
 
-## License
-MIT License. Open source and free to use.
+## 🔒 Security Model
 
-## Notes
-- Ensure your Android device and computer are connected to the same local network for optimal performance.
-- The PIN-based verification provides a basic layer of security suitable for local network use.
-- Files are transferred directly to your Android device's storage without any intermediate processing.
+Local Drop prioritizes **verification over trust**:
+1. **Verification Phase**: Upon upload, a random secret code (0-99) is generated and shown **only** to the sender.
+2. **Access Control**: The receiver is presented with four numbered options. Only picking the correct one matches the cryptographic hash on the server to unlock the download.
+3. **Ephemeral Storage**: All cloud drops are automatically expired and purged from the system after 1 hour.
 
-## Developer
-**Developed by**: surajitsahoo  
-**Email**: onlyforcode007@gmail.com
+---
+
+## 🛠️ Developer Info
+
+- **Created by**: [Surajit Sahoo](https://github.com/Surajit00007)
+- **Repository**: [LocalDrop-fileshare](https://github.com/Surajit00007/LocalDrop-fileshare)
+- **Contact**: onlyforcode007@gmail.com
+
+---
+
+## 📜 License
+MIT License. Open source and free to scale.
