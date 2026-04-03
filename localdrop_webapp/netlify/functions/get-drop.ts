@@ -1,4 +1,3 @@
-import type { Handler } from '@netlify/functions';
 import { getStore } from '@netlify/blobs';
 
 interface DropMetadata {
@@ -12,15 +11,6 @@ interface DropMetadata {
   downloadCount: number;
 }
 
-function getStoreWithAuth(name: string) {
-  const siteID = process.env.NETLIFY_SITE_ID || process.env.SITE_ID;
-  const token = process.env.NETLIFY_AUTH_TOKEN || process.env.TOKEN;
-  if (siteID && token) {
-    return getStore({ name, siteID, token, consistency: 'strong' });
-  }
-  return getStore(name);
-}
-
 function shuffleArray<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -30,32 +20,35 @@ function shuffleArray<T>(arr: T[]): T[] {
   return a;
 }
 
-export const handler: Handler = async (event) => {
-  const cors = {
+export default async (req: Request) => {
+  const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Content-Type': 'application/json',
   };
 
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: cors, body: '' };
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  const dropId = event.queryStringParameters?.dropId;
+  const url = new URL(req.url);
+  const dropId = url.searchParams.get('dropId');
+  
   if (!dropId) {
-    return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'Missing dropId' }) };
+    return new Response(JSON.stringify({ error: 'Missing dropId' }), { status: 400, headers: corsHeaders });
   }
 
   try {
-    const store = getStoreWithAuth('drops-metadata');
+    const store = getStore('drops-metadata');
     const metadata = await store.get(dropId, { type: 'json' }) as DropMetadata | null;
 
     if (!metadata) {
-      return { statusCode: 404, headers: cors, body: JSON.stringify({ error: 'Drop not found' }) };
+      return new Response(JSON.stringify({ error: 'Drop not found' }), { status: 404, headers: corsHeaders });
     }
 
     if (Date.now() > metadata.expiresAt) {
-      return { statusCode: 410, headers: cors, body: JSON.stringify({ error: 'This drop has expired' }) };
+      return new Response(JSON.stringify({ error: 'This drop has expired' }), { status: 410, headers: corsHeaders });
     }
 
     // Build 4 options (1 correct + 3 decoys) — never expose correct code to client
@@ -66,21 +59,18 @@ export const handler: Handler = async (event) => {
     }
     const options = shuffleArray(Array.from(decoys));
 
-    return {
-      statusCode: 200,
-      headers: cors,
-      body: JSON.stringify({
-        filename: metadata.filename,
-        size: metadata.size,
-        mimeType: metadata.mimeType,
-        totalChunks: metadata.totalChunks, // ADDED
-        options,
-        expiresAt: metadata.expiresAt,
-      }),
-    };
+    return new Response(JSON.stringify({
+      filename: metadata.filename,
+      size: metadata.size,
+      mimeType: metadata.mimeType,
+      totalChunks: metadata.totalChunks,
+      options,
+      expiresAt: metadata.expiresAt,
+    }), { status: 200, headers: corsHeaders });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('[get-drop] Error:', message);
-    return { statusCode: 500, headers: cors, body: JSON.stringify({ error: message }) };
+    return new Response(JSON.stringify({ error: message }), { status: 500, headers: corsHeaders });
   }
 };
+

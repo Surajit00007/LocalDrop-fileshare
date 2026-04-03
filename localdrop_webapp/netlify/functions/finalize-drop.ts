@@ -1,4 +1,3 @@
-import type { Handler } from '@netlify/functions';
 import { getStore } from '@netlify/blobs';
 
 interface DropMetadata {
@@ -12,40 +11,28 @@ interface DropMetadata {
   downloadCount: number;
 }
 
-function getStoreWithAuth(name: string) {
-  const siteID = process.env.NETLIFY_SITE_ID || process.env.SITE_ID;
-  const token = process.env.NETLIFY_AUTH_TOKEN || process.env.TOKEN;
-  if (siteID && token) {
-    return getStore({ name, siteID, token, consistency: 'strong' });
-  }
-  return getStore(name);
-}
-
-export const handler: Handler = async (event) => {
-  const cors = {
+export default async (req: Request) => {
+  const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Content-Type': 'application/json',
   };
 
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: cors, body: '' };
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers: cors, body: JSON.stringify({ error: 'Method not allowed' }) };
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: corsHeaders });
   }
 
   try {
-    const body = JSON.parse(event.body || '{}');
+    const body = await req.json();
     const { dropId, filename, size, mimeType, totalChunks } = body;
 
     if (!dropId || !filename || !size || !mimeType || totalChunks === undefined) {
-      return {
-        statusCode: 400,
-        headers: cors,
-        body: JSON.stringify({ error: 'Missing required fields' }),
-      };
+      return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400, headers: corsHeaders });
     }
 
     const correctCode = Math.floor(Math.random() * 100);
@@ -61,21 +48,14 @@ export const handler: Handler = async (event) => {
       downloadCount: 0,
     };
 
-    const store = getStoreWithAuth('drops-metadata');
+    const store = getStore('drops-metadata');
     await store.setJSON(dropId, metadata);
 
-    return {
-      statusCode: 200,
-      headers: cors,
-      body: JSON.stringify({ ok: true, dropId, correctCode }),
-    };
+    return new Response(JSON.stringify({ ok: true, dropId, correctCode }), { status: 200, headers: corsHeaders });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('[finalize-drop] Error:', message);
-    return {
-      statusCode: 500,
-      headers: cors,
-      body: JSON.stringify({ error: message }),
-    };
+    return new Response(JSON.stringify({ error: message }), { status: 500, headers: corsHeaders });
   }
 };
+
