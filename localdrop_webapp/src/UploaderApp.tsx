@@ -290,7 +290,7 @@ function SharePage({ info, onReset }: { info: DropInfo; onReset: () => void }) {
         </div>
       </div>
 
-      <button className="btn-primary" onClick={onReset}>
+      <button className="establish-btn" style={{ marginTop: '12px' }} onClick={onReset}>
         TERMINATE SESSION
       </button>
 
