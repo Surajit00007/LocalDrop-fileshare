@@ -934,3 +934,37 @@ body {
 .app-footer strong {
   color: var(--text-muted);
 }
+
+/* Futuristic Progress Bar */
+.progress-track.futuristic {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.progress-track.futuristic .progress-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 10px;
+  box-shadow: 0 0 15px var(--green), 0 0 5px #fff;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+/* Glowing head for sci-fi sweep effect */
+.progress-track.futuristic .progress-fill::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 10px;
+  background: #fff;
+  box-shadow: 0 0 20px #fff, 0 0 10px var(--green);
+  border-radius: 50%;
+}

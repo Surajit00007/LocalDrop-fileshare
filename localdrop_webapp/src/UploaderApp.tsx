@@ -105,7 +105,7 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
         const buffer = await chunk.arrayBuffer();
         const chunkData = toBase64Chunk(buffer);
 
-        setProgressLabel('Uploading');
+        setProgressLabel(`CHUNKS: [${i + 1}/${totalChunks}]`);
 
         const res = await fetch('/api/upload-chunk', {
           method: 'POST',
@@ -121,7 +121,7 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
         setProgress(Math.round(((i + 1) / totalChunks) * 85));
       }
 
-      setProgressLabel('Finalizing drop...');
+      setProgressLabel('ASSEMBLING DATA');
       const finalRes = await fetch('/api/finalize-drop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -187,11 +187,14 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
 
         {uploading && (
           <div className="upload-progress" style={{ marginTop: 24 }}>
-            <div className="progress-header">
-              <span className="progress-label">{progressLabel}</span>
-              <span className="progress-pct">{progress}%</span>
+            <div className="progress-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', gap: 2 }}>
+                <span style={{ fontSize: 14, fontWeight: 900, color: 'var(--green)', letterSpacing: 2 }}>UPLOADING</span>
+                <span className="progress-label" style={{ fontSize: 10, color: 'var(--text-subtle)', fontFamily: 'monospace', letterSpacing: 1 }}>{progressLabel}</span>
+              </div>
+              <span className="progress-pct" style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{progress}%</span>
             </div>
-            <div className="progress-track">
+            <div className="progress-track futuristic">
               <div className="progress-fill" style={{ width: `${progress}%` }} />
             </div>
             <button 
