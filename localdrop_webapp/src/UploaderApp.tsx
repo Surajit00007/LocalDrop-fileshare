@@ -105,7 +105,7 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
         const buffer = await chunk.arrayBuffer();
         const chunkData = toBase64Chunk(buffer);
 
-        setProgressLabel(`Uploading chunk ${i + 1} of ${totalChunks}...`);
+        setProgressLabel('Uploading');
 
         const res = await fetch('/api/upload-chunk', {
           method: 'POST',
