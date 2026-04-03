@@ -72,6 +72,7 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
   const [progress, setProgress] = useState(0);
   const [progressLabel, setProgressLabel] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const { showToast, ToastEl } = useToast();
 
   const handleFile = (f: File) => setFile(f);
@@ -90,6 +91,8 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
     if (!file) return;
     setUploading(true);
     setProgress(0);
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
     try {
       const dropId = uuidv4();
@@ -108,6 +111,7 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ chunkData, dropId, chunkIndex: i }),
+          signal,
         });
 
         if (!res.ok) {
@@ -128,6 +132,7 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
           mimeType: file.type || 'application/octet-stream',
           totalChunks,
         }),
+        signal,
       });
 
       if (!finalRes.ok) throw new Error('Finalize failed');
@@ -145,10 +150,20 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
         expiresAt: Date.now() + 15 * 60 * 1000,
       });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Upload failed';
-      showToast(msg, 'error');
+      if ((err as Error).name === 'AbortError') {
+        showToast('Upload terminated by user', 'info');
+      } else {
+        const msg = err instanceof Error ? err.message : 'Upload failed';
+        showToast(msg, 'error');
+      }
       setUploading(false);
       setProgress(0);
+    }
+  };
+
+  const handleCancelClick = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
     }
   };
 
@@ -179,6 +194,23 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
             <div className="progress-track">
               <div className="progress-fill" style={{ width: `${progress}%` }} />
             </div>
+            <button 
+              onClick={handleCancelClick}
+              style={{
+                marginTop: '16px',
+                width: '100%',
+                background: 'rgba(255, 23, 68, 0.1)',
+                border: '1px solid var(--red)',
+                color: 'var(--red)',
+                padding: '12px',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                letterSpacing: '1px'
+              }}
+            >
+              CANCEL TRANSFER
+            </button>
           </div>
         )}
       </div>
