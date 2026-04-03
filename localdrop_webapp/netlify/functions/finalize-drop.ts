@@ -44,7 +44,7 @@ export default async (req: Request) => {
       totalChunks,
       correctCode,
       createdAt: now,
-      expiresAt: now + 60 * 60 * 1000,
+      expiresAt: now + 15 * 60 * 1000,
       downloadCount: 0,
     };
 

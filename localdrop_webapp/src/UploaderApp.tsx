@@ -142,7 +142,7 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
         filename: file.name,
         size: file.size,
         shareUrl,
-        expiresAt: Date.now() + 60 * 60 * 1000,
+        expiresAt: Date.now() + 15 * 60 * 1000,
       });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Upload failed';
