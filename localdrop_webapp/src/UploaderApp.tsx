@@ -3,7 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { v4 as uuidv4 } from 'uuid';
 
 // ===== CONSTANTS =====
-const CHUNK_SIZE = 4 * 1024 * 1024; // 4MB to stay safely under 6MB limit
+const CHUNK_SIZE = 3.5 * 1024 * 1024; // 3.5MB (safe for 6MB Netlify limit)
 
 // ===== TYPES =====
 type AppView = 'upload' | 'share';
@@ -77,12 +77,13 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
   const handleFile = (f: File) => setFile(f);
 
   const toBase64Chunk = (buffer: ArrayBuffer): string => {
-    const bytes = new Uint8Array(buffer);
     let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
       binary += String.fromCharCode(bytes[i]);
     }
-    return btoa(binary);
+    return window.btoa(binary);
   };
 
   const handleUpload = async () => {
