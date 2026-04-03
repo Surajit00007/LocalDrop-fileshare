@@ -390,6 +390,12 @@ export default function UploaderApp() {
           )
         )}
       </div>
+
+      {/* Constraints Footer */}
+      <div className="app-footer">
+        <span className="material-icons-round">info</span>
+        <span><strong>Network Constraints:</strong> Max ~500MB • 15 Minute Auto-Expiry • Do not close browser during upload</span>
+      </div>
     </div>
   );
 }
