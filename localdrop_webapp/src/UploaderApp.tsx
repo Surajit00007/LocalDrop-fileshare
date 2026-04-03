@@ -195,17 +195,8 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
         >
-          <span className="material-icons-round">upload_file</span>
-          <span className="btn-label">SHARE FILE</span>
-        </button>
-
-        <button
-          className="action-btn btn-receive"
-          onClick={() => (window.location.href = '/')}
-          disabled={uploading}
-        >
-          <span className="material-icons-round">download_for_offline</span>
-          <span className="btn-label">RECEIVE FILE</span>
+          <span className="material-icons-round" style={{ fontSize: 32 }}>upload_file</span>
+          <span className="btn-label">SELECT FILE TO SECURELY SHARE</span>
         </button>
       </div>
 
