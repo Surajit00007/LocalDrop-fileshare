@@ -13,12 +13,12 @@ interface DropMetadata {
 }
 
 function getStoreWithAuth(name: string) {
-  const siteID = process.env.NETLIFY_SITE_ID || process.env.SITE_ID || '';
-  const token = process.env.NETLIFY_AUTH_TOKEN || process.env.TOKEN || '';
+  const siteID = process.env.NETLIFY_SITE_ID || process.env.SITE_ID;
+  const token = process.env.NETLIFY_AUTH_TOKEN || process.env.TOKEN;
   if (siteID && token) {
-    return getStore({ name, consistency: 'strong', siteID, token });
+    return getStore({ name, siteID, token, consistency: 'strong' });
   }
-  return getStore({ name, consistency: 'strong' });
+  return getStore(name);
 }
 
 function shuffleArray<T>(arr: T[]): T[] {

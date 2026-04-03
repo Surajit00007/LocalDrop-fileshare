@@ -13,13 +13,16 @@ interface DropMetadata {
 }
 
 function getStoreWithAuth(name: string) {
-  const siteID = process.env.NETLIFY_SITE_ID || process.env.SITE_ID || '';
-  const token = process.env.NETLIFY_AUTH_TOKEN || process.env.TOKEN || '';
+  // Manual credentials for local development
+  const siteID = process.env.NETLIFY_SITE_ID || process.env.SITE_ID;
+  const token = process.env.NETLIFY_AUTH_TOKEN || process.env.TOKEN;
+
   if (siteID && token) {
-    return getStore({ name, consistency: 'strong', siteID, token });
+    return getStore({ name, siteID, token, consistency: 'strong' });
   }
-  // On deployed Netlify, context is injected automatically
-  return getStore({ name, consistency: 'strong' });
+  
+  // Standard production/injected context
+  return getStore(name);
 }
 
 export const handler: Handler = async (event) => {
