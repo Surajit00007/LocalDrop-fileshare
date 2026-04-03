@@ -3,7 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { v4 as uuidv4 } from 'uuid';
 
 // ===== CONSTANTS =====
-const CHUNK_SIZE = 3.5 * 1024 * 1024; // 3.5MB (safe for 6MB Netlify limit)
+const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB (Extremely safe for 6MB Netlify payload limit)
 
 // ===== TYPES =====
 type AppView = 'upload' | 'share';
@@ -110,7 +110,10 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
           body: JSON.stringify({ chunkData, dropId, chunkIndex: i }),
         });
 
-        if (!res.ok) throw new Error(`Chunk ${i} upload failed`);
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `Chunk ${i} upload failed (HTTP ${res.status})`);
+        }
         setProgress(Math.round(((i + 1) / totalChunks) * 85));
       }
 
