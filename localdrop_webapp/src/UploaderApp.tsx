@@ -349,8 +349,34 @@ export default function UploaderApp() {
         <p className="app-tagline">Local Drop — Secure Transfer</p>
 
         <div className="feature-list">
-          <div className="feature-pill">Cloud Sharing</div>
-          <div className="feature-pill">QR CODE Sharing</div>
+          <div className="feature-pill"><span className="material-icons-round" style={{ fontSize: 16 }}>cloud_sync</span> Cloud Sharing</div>
+          <div className="feature-pill"><span className="material-icons-round" style={{ fontSize: 16 }}>qr_code</span> QR CODE Sharing</div>
+        </div>
+
+        <div className="how-to-use">
+          <h3 className="how-to-title">How to use?</h3>
+          <div className="steps-container">
+            <div className="step-item">
+              <span className="step-num">1</span>
+              <span className="step-text"><strong>Upload file</strong></span>
+            </div>
+            <div className="step-item">
+              <span className="step-num">2</span>
+              <span className="step-text"><strong>Establish Drop</strong></span>
+            </div>
+            <div className="step-item">
+              <span className="step-num">3</span>
+              <span className="step-text"><strong>Scan QR</strong> or share link</span>
+            </div>
+            <div className="step-item">
+              <span className="step-num">4</span>
+              <span className="step-text"><strong>Enter Passcode</strong></span>
+            </div>
+            <div className="step-item final-step">
+              <span className="step-icon material-icons-round">download_done</span>
+              <span className="step-text final"><strong>Download starts automatically</strong></span>
+            </div>
+          </div>
         </div>
       </div>
 
