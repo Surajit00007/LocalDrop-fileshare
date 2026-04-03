@@ -517,7 +517,8 @@ body {
 
 .action-btn {
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
   border-radius: 20px;
   padding: 24px 16px;
   cursor: pointer;
@@ -526,13 +527,14 @@ body {
   align-items: center;
   gap: 12px;
   transition: all 0.3s ease;
-  color: var(--text-muted);
+  color: var(--text);
 }
 
 .action-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: var(--text-subtle);
-  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+  color: #fff;
   transform: translateY(-4px);
 }
 

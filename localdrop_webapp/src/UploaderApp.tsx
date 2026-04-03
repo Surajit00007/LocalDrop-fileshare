@@ -344,7 +344,7 @@ export default function UploaderApp() {
           <div className="feature-pill"><span className="material-icons-round" style={{ fontSize: 16 }}>qr_code</span> QR CODE Sharing</div>
           <div className="feature-pill"><span className="material-icons-round" style={{ fontSize: 16 }}>lock</span> PIN Secured</div>
           <div className="feature-pill"><span className="material-icons-round" style={{ fontSize: 16 }}>flash_on</span> Lightning Fast</div>
-          <div className="feature-pill"><span className="material-icons-round" style={{ fontSize: 16 }}>devices</span> Device Agnostic</div>
+          <div className="feature-pill"><span className="material-icons-round" style={{ fontSize: 16 }}>devices</span> Device Independent</div>
         </div>
 
         <div className="how-to-use">
