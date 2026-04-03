@@ -196,7 +196,7 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
           disabled={uploading}
         >
           <span className="material-icons-round" style={{ fontSize: 32 }}>upload_file</span>
-          <span className="btn-label">SELECT FILE TO SECURELY SHARE</span>
+          <span className="btn-label">SELECT FILE TO SHARE</span>
         </button>
       </div>
 
@@ -342,6 +342,9 @@ export default function UploaderApp() {
         <div className="feature-list">
           <div className="feature-pill"><span className="material-icons-round" style={{ fontSize: 16 }}>cloud_sync</span> Cloud Sharing</div>
           <div className="feature-pill"><span className="material-icons-round" style={{ fontSize: 16 }}>qr_code</span> QR CODE Sharing</div>
+          <div className="feature-pill"><span className="material-icons-round" style={{ fontSize: 16 }}>lock</span> PIN Secured</div>
+          <div className="feature-pill"><span className="material-icons-round" style={{ fontSize: 16 }}>flash_on</span> Lightning Fast</div>
+          <div className="feature-pill"><span className="material-icons-round" style={{ fontSize: 16 }}>devices</span> Device Agnostic</div>
         </div>
 
         <div className="how-to-use">

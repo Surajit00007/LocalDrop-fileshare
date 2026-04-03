@@ -794,11 +794,21 @@ body {
 .toast.error { border-color: var(--red); }
 .toast.error .material-icons-round { color: var(--red); }
 
-/* Update Feature Pills to Flex */
+/* Update Feature Pills to Flex & Hover Buttons */
 .feature-pill {
   display: flex;
   align-items: center;
   gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.feature-pill:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--cyan);
+  border-color: var(--cyan);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px var(--cyan-dim);
 }
 
 /* How to Use Section (Glassmorphism Styled timeline) */
