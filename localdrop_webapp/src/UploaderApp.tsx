@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import JSZip from 'jszip';
 // ===== CONSTANTS =====
 const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB (Extremely safe for 6MB Netlify payload limit)
 
@@ -65,7 +66,7 @@ function useToast() {
 
 // ===== UPLOAD COMPONENT =====
 function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void }) {
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressLabel, setProgressLabel] = useState('');
@@ -74,7 +75,14 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
   const { showToast, ToastEl } = useToast();
   const [receiveCode, setReceiveCode] = useState('');
 
-  const handleFile = (f: File) => setFile(f);
+  const handleFiles = (newFiles: FileList | null) => {
+    if (!newFiles) return;
+    setFiles(prev => [...prev, ...Array.from(newFiles)]);
+  };
+
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
   const toBase64Chunk = (buffer: ArrayBuffer): string => {
     let binary = '';
@@ -87,24 +95,40 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
   };
 
   const handleUpload = async () => {
-    if (!file) return;
+    if (files.length === 0) return;
     setUploading(true);
     setProgress(0);
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
 
     try {
+      let uploadBlob: Blob;
+      let finalFilename: string;
+
+      if (files.length === 1) {
+        uploadBlob = files[0];
+        finalFilename = files[0].name;
+      } else {
+        setProgressLabel('ZIPPING FILES');
+        const zip = new JSZip();
+        files.forEach(f => zip.file(f.name, f));
+        uploadBlob = await zip.generateAsync({ type: 'blob' }, (metadata) => {
+          setProgress(Math.round(metadata.percent * 0.1)); // First 10% for zipping
+        });
+        finalFilename = `LocalDrop_${files.length}_Files.zip`;
+      }
+
       const dropId = Math.floor(100000 + Math.random() * 900000).toString();
-      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+      const totalChunks = Math.ceil(uploadBlob.size / CHUNK_SIZE);
 
       for (let i = 0; i < totalChunks; i++) {
         const start = i * CHUNK_SIZE;
-        const end = Math.min(start + CHUNK_SIZE, file.size);
-        const chunk = file.slice(start, end);
+        const end = Math.min(start + CHUNK_SIZE, uploadBlob.size);
+        const chunk = uploadBlob.slice(start, end);
         const buffer = await chunk.arrayBuffer();
         const chunkData = toBase64Chunk(buffer);
 
-        setProgressLabel(`CHUNKS: [${i + 1}/${totalChunks}]`);
+        setProgressLabel(`UPLOADING: [${i + 1}/${totalChunks}]`);
 
         const res = await fetch('/api/upload-chunk', {
           method: 'POST',
@@ -117,7 +141,8 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
           const errData = await res.json().catch(() => ({}));
           throw new Error(errData.error || `Chunk ${i} upload failed (HTTP ${res.status})`);
         }
-        setProgress(Math.round(((i + 1) / totalChunks) * 85));
+        // Map 10% to 95% progress for upload
+        setProgress(10 + Math.round(((i + 1) / totalChunks) * 85));
       }
 
       setProgressLabel('ASSEMBLING DATA');
@@ -126,9 +151,9 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           dropId,
-          filename: file.name,
-          size: file.size,
-          mimeType: file.type || 'application/octet-stream',
+          filename: finalFilename,
+          size: uploadBlob.size,
+          mimeType: uploadBlob.type || 'application/octet-stream',
           totalChunks,
         }),
         signal,
@@ -143,8 +168,8 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
       onDropCreated({
         dropId,
         correctCode,
-        filename: file.name,
-        size: file.size,
+        filename: finalFilename,
+        size: uploadBlob.size,
         shareUrl,
         expiresAt: Date.now() + 15 * 60 * 1000,
       });
@@ -166,8 +191,7 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
     }
   };
 
-  const iconClass = file ? getFileIconClass(file.name) : 'default';
-  const iconName = getFileIconName(iconClass);
+  const totalSize = files.reduce((acc, f) => acc + f.size, 0);
 
   return (
     <>
@@ -181,32 +205,48 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
         <input
           ref={inputRef}
           type="file"
+          multiple
           style={{ display: 'none' }}
-          onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
+          onChange={e => handleFiles(e.target.files)}
         />
 
-        {/* File selector — compact horizontal */}
-        <button
-          className={`file-select-btn ${file ? 'has-file' : ''}`}
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-        >
-          <span className="material-icons-round">
-            {file ? getFileIconName(iconClass) : 'add_circle_outline'}
-          </span>
-          <span className="file-select-text">
-            {file ? file.name : 'Choose a file to share'}
-          </span>
-          {file && (
-            <span className="file-select-size">{formatBytes(file.size)}</span>
+        <div className="file-select-row">
+          <button
+            className={`file-select-btn ${files.length > 0 ? 'has-file' : ''}`}
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+          >
+            <span className="material-icons-round">
+              {files.length > 0 ? 'library_add_check' : 'add_circle_outline'}
+            </span>
+            <span className="file-select-text">
+              {files.length === 0 
+                ? 'Choose files to share' 
+                : files.length === 1 
+                  ? files[0].name 
+                  : `${files.length} Files Selected`}
+            </span>
+            {files.length > 0 && (
+              <span className="file-select-size">{formatBytes(totalSize)}</span>
+            )}
+          </button>
+          
+          {files.length > 0 && !uploading && (
+            <button 
+              className="add-more-btn"
+              onClick={() => inputRef.current?.click()}
+              title="Add more files"
+            >
+              <span className="material-icons-round">add</span>
+            </button>
           )}
-        </button>
+        </div>
 
         {/* Establish button */}
         <button
           className="establish-btn"
           onClick={handleUpload}
-          disabled={!file || uploading}
+          disabled={files.length === 0 || uploading}
         >
           <span className="material-icons-round" style={{ fontSize: 20 }}>
             {uploading ? 'sync' : 'bolt'}
@@ -268,27 +308,32 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
       </div>
 
       {/* Transfer Activity */}
-      {file && (
+      {files.length > 0 && (
         <div className="vault-section">
           <div className="vault-header">
             <span className="vault-title">Transfer Activity</span>
-            <span className="vault-count">1 File</span>
+            <span className="vault-count">{files.length} {files.length === 1 ? 'File' : 'Files'}</span>
           </div>
           <div className="file-list">
-            <div className="file-item">
-              <div className={`file-item-icon ${iconClass}`}>
-                <span className="material-icons-round">{iconName}</span>
-              </div>
-              <div className="file-item-info">
-                <div className="file-item-name" title={file.name}>{file.name}</div>
-                <div className="file-item-meta">{formatBytes(file.size)} • Ready</div>
-              </div>
-              {!uploading && (
-                <button className="file-remove" onClick={() => setFile(null)}>
-                  <span className="material-icons-round" style={{ fontSize: 18 }}>close</span>
-                </button>
-              )}
-            </div>
+            {files.map((f, i) => {
+              const cls = getFileIconClass(f.name);
+              return (
+                <div className="file-item" key={`${f.name}-${i}`}>
+                  <div className={`file-item-icon ${cls}`}>
+                    <span className="material-icons-round">{getFileIconName(cls)}</span>
+                  </div>
+                  <div className="file-item-info">
+                    <div className="file-item-name" title={f.name}>{f.name}</div>
+                    <div className="file-item-meta">{formatBytes(f.size)} • Ready</div>
+                  </div>
+                  {!uploading && (
+                    <button className="file-remove" onClick={() => removeFile(i)}>
+                      <span className="material-icons-round" style={{ fontSize: 18 }}>close</span>
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

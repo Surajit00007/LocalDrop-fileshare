@@ -553,7 +553,24 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 8px;
 }
+
+.file-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.file-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.file-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
 
 .file-item {
   background: rgba(255, 255, 255, 0.03);
@@ -998,8 +1015,41 @@ body {
   font-size: 14px;
   font-weight: 500;
   transition: all 0.25s ease;
+}
+
+.file-select-row {
+  display: flex;
+  gap: 12px;
   margin-bottom: 14px;
 }
+
+.file-select-row .file-select-btn {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.add-more-btn {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  color: var(--cyan);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+}
+
+.add-more-btn:hover {
+  background: var(--cyan-dim);
+  border-color: var(--cyan);
+  box-shadow: 0 0 20px var(--cyan-glow);
+  transform: translateY(-2px);
+}
+
 
 .file-select-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.05);
