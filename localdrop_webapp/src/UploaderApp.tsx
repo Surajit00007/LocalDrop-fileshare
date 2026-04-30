@@ -1,7 +1,5 @@
 import { useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { v4 as uuidv4 } from 'uuid';
-
 // ===== CONSTANTS =====
 const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB (Extremely safe for 6MB Netlify payload limit)
 
@@ -74,6 +72,7 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
   const inputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const { showToast, ToastEl } = useToast();
+  const [receiveCode, setReceiveCode] = useState('');
 
   const handleFile = (f: File) => setFile(f);
 
@@ -95,7 +94,7 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
     const signal = abortControllerRef.current.signal;
 
     try {
-      const dropId = uuidv4();
+      const dropId = Math.floor(100000 + Math.random() * 900000).toString();
       const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
 
       for (let i = 0; i < totalChunks; i++) {
@@ -172,82 +171,110 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
 
   return (
     <>
-      <div className="browser-card">
-        <span className="card-label">Connection Manager</span>
-        <div className="url-display" title={window.location.host}>
-          {window.location.host}
+      {/* SEND Section */}
+      <div className="section-block">
+        <div className="section-label">
+          <span className="material-icons-round">cloud_upload</span>
+          SEND A FILE
         </div>
-        <button
-          className="establish-btn"
-          onClick={handleUpload}
-          disabled={!file || uploading}
-        >
-          {uploading ? 'UPLOADING...' : 'ESTABLISH DROP'}
-        </button>
 
-        {uploading && (
-          <div className="upload-progress" style={{ marginTop: 24 }}>
-            <div className="progress-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', gap: 2 }}>
-                <span style={{ fontSize: 14, fontWeight: 900, color: 'var(--green)', letterSpacing: 2 }}>UPLOADING</span>
-                <span className="progress-label" style={{ fontSize: 10, color: 'var(--text-subtle)', fontFamily: 'monospace', letterSpacing: 1 }}>{progressLabel}</span>
-              </div>
-              <span className="progress-pct" style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{progress}%</span>
-            </div>
-            <div className="progress-track futuristic">
-              <div className="progress-fill" style={{ width: `${progress}%` }} />
-            </div>
-            <button 
-              onClick={handleCancelClick}
-              style={{
-                marginTop: '16px',
-                width: '100%',
-                background: 'rgba(255, 23, 68, 0.1)',
-                border: '1px solid var(--red)',
-                color: 'var(--red)',
-                padding: '12px',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                letterSpacing: '1px'
-              }}
-            >
-              CANCEL TRANSFER
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="action-row">
         <input
           ref={inputRef}
           type="file"
           style={{ display: 'none' }}
           onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
         />
+
+        {/* File selector — compact horizontal */}
         <button
-          className={`action-btn btn-share ${file ? 'active' : ''}`}
+          className={`file-select-btn ${file ? 'has-file' : ''}`}
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
         >
-          <span className="material-icons-round" style={{ fontSize: 32 }}>upload_file</span>
-          <span className="btn-label">SELECT FILE TO SHARE</span>
+          <span className="material-icons-round">
+            {file ? getFileIconName(iconClass) : 'add_circle_outline'}
+          </span>
+          <span className="file-select-text">
+            {file ? file.name : 'Choose a file to share'}
+          </span>
+          {file && (
+            <span className="file-select-size">{formatBytes(file.size)}</span>
+          )}
         </button>
+
+        {/* Establish button */}
+        <button
+          className="establish-btn"
+          onClick={handleUpload}
+          disabled={!file || uploading}
+        >
+          <span className="material-icons-round" style={{ fontSize: 20 }}>
+            {uploading ? 'sync' : 'bolt'}
+          </span>
+          {uploading ? 'UPLOADING...' : 'ESTABLISH DROP'}
+        </button>
+
+        {uploading && (
+          <div className="upload-progress">
+            <div className="progress-header">
+              <div className="progress-header-left">
+                <span className="progress-status-text">UPLOADING</span>
+                <span className="progress-label">{progressLabel}</span>
+              </div>
+              <span className="progress-pct">{progress}%</span>
+            </div>
+            <div className="progress-track futuristic">
+              <div className="progress-fill" style={{ width: `${progress}%` }} />
+            </div>
+            <button className="cancel-btn" onClick={handleCancelClick}>
+              CANCEL TRANSFER
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="vault-section">
-        <div className="vault-header">
-          <span className="vault-title">Transfer Activity</span>
-          <span style={{ fontSize: 11, color: 'var(--text-subtle)' }}>{file ? '1 File' : '0 Files'}</span>
-        </div>
+      {/* Divider */}
+      <div className="section-divider">
+        <span className="divider-line" />
+        <span className="divider-text">OR</span>
+        <span className="divider-line" />
+      </div>
 
-        <div className="file-list">
-          {!file ? (
-            <div className="empty-state">
-              <span className="material-icons-round">inbox</span>
-              <div>Waiting for files...</div>
-            </div>
-          ) : (
+      {/* RECEIVE Section */}
+      <div className="section-block">
+        <div className="section-label">
+          <span className="material-icons-round">download</span>
+          RECEIVE A FILE
+        </div>
+        <div className="receive-row">
+          <input
+            type="text"
+            className="receive-input"
+            placeholder="000000"
+            value={receiveCode}
+            onChange={(e) => setReceiveCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            maxLength={6}
+          />
+          <button
+            className="receive-btn"
+            onClick={() => { if (receiveCode.length === 6) window.location.href = `/receive/${receiveCode}` }}
+            disabled={receiveCode.length !== 6 || uploading}
+          >
+            <span className="material-icons-round">arrow_forward</span>
+            RECEIVE
+          </button>
+        </div>
+        <p className="section-hint">Enter the 6-digit code shown on the sender's device</p>
+      </div>
+
+      {/* Transfer Activity */}
+      {file && (
+        <div className="vault-section">
+          <div className="vault-header">
+            <span className="vault-title">Transfer Activity</span>
+            <span className="vault-count">1 File</span>
+          </div>
+          <div className="file-list">
             <div className="file-item">
               <div className={`file-item-icon ${iconClass}`}>
                 <span className="material-icons-round">{iconName}</span>
@@ -262,9 +289,9 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
                 </button>
               )}
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
       {ToastEl}
     </>
   );
@@ -290,49 +317,50 @@ function SharePage({ info, onReset }: { info: DropInfo; onReset: () => void }) {
 
   return (
     <>
-      <div className="browser-card" style={{ background: 'var(--bg-card)' }}>
-        <span className="card-label">Connection Manager</span>
-        <div className="url-display" title={info.shareUrl}>
-          {info.shareUrl}
-        </div>
-        <div
-          className="qr-wrap"
-          style={{ margin: '0 auto 24px', width: 'fit-content' }}
-        >
+      {/* QR Code Section */}
+      <div className="share-qr-section">
+        <div className="qr-wrap">
           <QRCodeSVG
             value={info.shareUrl}
-            size={180}
+            size={160}
             bgColor="#ffffff"
             fgColor="#0F1724"
             level="H"
             includeMargin={true}
           />
         </div>
+      </div>
 
-        <div className="pin-display-box">
-          <div className="card-label">RECIPIENT SECURE CODE</div>
-          <div className="pin-code">{String(info.correctCode).padStart(2, '0')}</div>
-          <p className="text-muted" style={{ fontSize: 12 }}>
-            Receiver must select this number among 4 options.
-          </p>
+      {/* Drop Code + Pin — side by side */}
+      <div className="share-codes-row">
+        <div className="share-code-card drop-code-card">
+          <span className="share-code-label">DROP CODE</span>
+          <span className="share-code-value drop-code-value">{info.dropId}</span>
+          <span className="share-code-hint">Enter on receiver device</span>
         </div>
-
-        <div className="share-url-row">
-          <div className="share-url">{info.shareUrl}</div>
-          <button className="copy-btn" onClick={copy}>
-            {copied ? 'COPIED' : 'COPY'}
-          </button>
+        <div className="share-code-card pin-code-card">
+          <span className="share-code-label">SECURE PIN</span>
+          <span className="share-code-value pin-code-value">{String(info.correctCode).padStart(2, '0')}</span>
+          <span className="share-code-hint">Select from 4 options</span>
         </div>
       </div>
 
-      <button className="establish-btn" style={{ marginTop: '12px' }} onClick={onReset}>
-        TERMINATE SESSION
-      </button>
+      {/* Share URL */}
+      <div className="share-url-row">
+        <div className="share-url">{info.shareUrl}</div>
+        <button className="copy-btn" onClick={copy}>
+          <span className="material-icons-round" style={{ fontSize: 16 }}>
+            {copied ? 'check' : 'content_copy'}
+          </span>
+          {copied ? 'COPIED' : 'COPY'}
+        </button>
+      </div>
 
-      <div className="vault-section" style={{ marginTop: 24 }}>
+      {/* Active Drop Info */}
+      <div className="vault-section">
         <div className="vault-header">
           <span className="vault-title">Active Drop</span>
-          <span style={{ fontSize: 11, color: 'var(--accent-green)' }}>Expires in {expiresIn}m</span>
+          <span className="vault-count vault-expires">Expires in {expiresIn}m</span>
         </div>
         <div className="file-item">
           <div className="file-item-icon">
@@ -344,6 +372,12 @@ function SharePage({ info, onReset }: { info: DropInfo; onReset: () => void }) {
           </div>
         </div>
       </div>
+
+      {/* Terminate */}
+      <button className="terminate-btn" onClick={onReset}>
+        <span className="material-icons-round" style={{ fontSize: 18 }}>power_settings_new</span>
+        TERMINATE SESSION
+      </button>
       {ToastEl}
     </>
   );
@@ -372,14 +406,14 @@ export default function UploaderApp() {
         </div>
 
         <h1 className="app-title">Local Drop</h1>
-        <p className="app-tagline">Local Drop — Secure Transfer</p>
+        <p className="app-tagline">Secure & Instant File Transfer</p>
 
         <div className="feature-list">
           <div className="feature-pill"><span className="material-icons-round" style={{ fontSize: 16 }}>cloud_sync</span> Cloud Sharing</div>
-          <div className="feature-pill"><span className="material-icons-round" style={{ fontSize: 16 }}>qr_code</span> QR CODE Sharing</div>
+          <div className="feature-pill"><span className="material-icons-round" style={{ fontSize: 16 }}>qr_code</span> QR Code</div>
           <div className="feature-pill"><span className="material-icons-round" style={{ fontSize: 16 }}>lock</span> PIN Secured</div>
           <div className="feature-pill"><span className="material-icons-round" style={{ fontSize: 16 }}>flash_on</span> Lightning Fast</div>
-          <div className="feature-pill"><span className="material-icons-round" style={{ fontSize: 16 }}>devices</span> Device Independent</div>
+          <div className="feature-pill"><span className="material-icons-round" style={{ fontSize: 16 }}>devices</span> Cross-Device</div>
         </div>
 
         <div className="how-to-use">
@@ -395,7 +429,7 @@ export default function UploaderApp() {
             </div>
             <div className="step-item">
               <span className="step-num">3</span>
-              <span className="step-text"><strong>Scan QR</strong> or share link</span>
+              <span className="step-text"><strong>Share code or scan QR</strong></span>
             </div>
             <div className="step-item">
               <span className="step-num">4</span>
