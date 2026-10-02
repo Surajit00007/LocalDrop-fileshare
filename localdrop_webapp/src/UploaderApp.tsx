@@ -9,6 +9,7 @@ type AppView = 'upload' | 'share';
 
 interface DropInfo {
   dropId: string;
+  pairCode: string;
   correctCode: number;
   filename: string;
   size: number;
@@ -74,6 +75,24 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
   const abortControllerRef = useRef<AbortController | null>(null);
   const { showToast, ToastEl } = useToast();
   const [receiveCode, setReceiveCode] = useState('');
+  const [resolvingCode, setResolvingCode] = useState(false);
+  const [receiveError, setReceiveError] = useState('');
+
+  const receiveByCode = async () => {
+    if (receiveCode.length !== 8 || resolvingCode) return;
+    setResolvingCode(true);
+    setReceiveError('');
+    try {
+      const response = await fetch(`/api/resolve-pairing?code=${encodeURIComponent(receiveCode)}`);
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Pairing code not found');
+      window.location.href = `/receive/${result.dropId}`;
+    } catch (err) {
+      setReceiveError(err instanceof Error ? err.message : 'Could not find that drop');
+    } finally {
+      setResolvingCode(false);
+    }
+  };
 
   const handleFiles = (newFiles: FileList | null) => {
     if (!newFiles) return;
@@ -165,8 +184,18 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
       setProgress(100);
 
       const shareUrl = `${window.location.origin}/receive/${dropId}`;
+      const pairRes = await fetch('/api/create-pairing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dropId }),
+        signal,
+      });
+      if (!pairRes.ok) throw new Error('Could not create a laptop pairing code');
+      const { pairCode } = await pairRes.json();
+
       onDropCreated({
         dropId,
+        pairCode,
         correctCode,
         filename: finalFilename,
         size: uploadBlob.size,
@@ -290,21 +319,23 @@ function UploadPage({ onDropCreated }: { onDropCreated: (info: DropInfo) => void
           <input
             type="text"
             className="receive-input"
-            placeholder="000000"
+            placeholder="8-CHAR CODE"
             value={receiveCode}
-            onChange={(e) => setReceiveCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-            maxLength={6}
+            onChange={(e) => setReceiveCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8))}
+            maxLength={8}
+            onKeyDown={(e) => { if (e.key === 'Enter') void receiveByCode(); }}
           />
           <button
             className="receive-btn"
-            onClick={() => { if (receiveCode.length === 6) window.location.href = `/receive/${receiveCode}` }}
-            disabled={receiveCode.length !== 6 || uploading}
+            onClick={() => void receiveByCode()}
+            disabled={receiveCode.length !== 8 || uploading || resolvingCode}
           >
             <span className="material-icons-round">arrow_forward</span>
-            RECEIVE
+            {resolvingCode ? 'CONNECTING…' : 'RECEIVE'}
           </button>
         </div>
-        <p className="section-hint">Enter the 6-digit code shown on the sender's device</p>
+        <p className="section-hint">Enter the 8-character pairing code shown on the phone</p>
+        {receiveError && <p role="alert" className="section-hint" style={{ color: '#f87171' }}>{receiveError}</p>}
       </div>
 
       {/* Transfer Activity */}
@@ -379,9 +410,9 @@ function SharePage({ info, onReset }: { info: DropInfo; onReset: () => void }) {
       {/* Drop Code + Pin — side by side */}
       <div className="share-codes-row">
         <div className="share-code-card drop-code-card">
-          <span className="share-code-label">DROP CODE</span>
-          <span className="share-code-value drop-code-value">{info.dropId}</span>
-          <span className="share-code-hint">Enter on receiver device</span>
+          <span className="share-code-label">LAPTOP PAIRING CODE</span>
+          <span className="share-code-value drop-code-value">{info.pairCode}</span>
+          <span className="share-code-hint">Enter this on LocalDrop on your laptop</span>
         </div>
         <div className="share-code-card pin-code-card">
           <span className="share-code-label">SECURE PIN</span>
@@ -389,6 +420,18 @@ function SharePage({ info, onReset }: { info: DropInfo; onReset: () => void }) {
           <span className="share-code-hint">Select from 4 options</span>
         </div>
       </div>
+
+      <button className="copy-btn" style={{ width: '100%', justifyContent: 'center', marginTop: 12 }} onClick={async () => {
+        try {
+          if (navigator.share) await navigator.share({ title: 'LocalDrop file', text: `Pairing code: ${info.pairCode}`, url: info.shareUrl });
+          else { await navigator.clipboard.writeText(info.pairCode); showToast('Pairing code copied', 'success'); }
+        } catch (err) {
+          if (!(err instanceof Error) || err.name !== 'AbortError') showToast('Could not share the pairing code', 'error');
+        }
+      }}>
+        <span className="material-icons-round">{typeof navigator !== 'undefined' && navigator.share ? 'near_me' : 'content_copy'}</span>
+        SEND CODE TO LAPTOP
+      </button>
 
       {/* Share URL */}
       <div className="share-url-row">
@@ -474,7 +517,7 @@ export default function UploaderApp() {
             </div>
             <div className="step-item">
               <span className="step-num">3</span>
-              <span className="step-text"><strong>Share code or scan QR</strong></span>
+              <span className="step-text"><strong>Send the pairing code or scan QR</strong></span>
             </div>
             <div className="step-item">
               <span className="step-num">4</span>

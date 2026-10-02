@@ -17,10 +17,14 @@ Built for the modern web, this version is designed for deployment on **Netlify**
 - **Backend**: Netlify Functions (Serverless).
 - **Storage**: Netlify Blobs for global reach.
 - **Key Features**:
-    - **Chunked Transfers**: Reconstructs large files in the browser via 4MB chunks, bypassing serverless limits.
+    - **Chunked Transfers**: Reconstructs large files in the browser via 1MB chunks, bypassing serverless limits.
     - **High-Fidelity UI**: Premium Glassmorphism design with a split-panel layout.
     - **Human-in-the-Loop Security**: Sender generates a random 2-digit PIN; Receiver must unlock via a 4-option decoy grid.
-    - **QR Sharing**: Instant QR code generation for mobile-to-desktop or mobile-to-mobile drops.
+    - **Phone-to-Laptop Pairing**: A short-lived 8-character code lets the laptop find a phone's uploaded drop without scanning a QR code or manually moving a URL.
+    - **Wireless Handoff**: On supported phones, the system share sheet can send the link and pairing code to the laptop. Otherwise, enter the code on LocalDrop's Receive screen.
+    - **QR Sharing**: QR links remain available as an alternate way to open a drop.
+
+The web app uses Netlify as a temporary cloud relay, so the phone and laptop can be on different networks. Pairing codes expire with their drop after 15 minutes. The receiver still completes the existing PIN selection step before downloading.
 
 ### 2. 👋 Local P2P Android Tool (Original)
 **Location**: `/localdrop_andriod`  
@@ -62,9 +66,10 @@ npx netlify deploy --build --prod
 ## 🔒 Security Model
 
 Local Drop prioritizes **verification over trust**:
-1. **Verification Phase**: Upon upload, a random secret code (0-99) is generated and shown **only** to the sender.
-2. **Access Control**: The receiver is presented with four numbered options. Only picking the correct one matches the cryptographic hash on the server to unlock the download.
-3. **Ephemeral Storage**: All cloud drops are automatically expired and purged from the system after 1 hour.
+1. **Pairing**: The web app creates a random 8-character code that maps to the uploaded drop and expires with it.
+2. **Verification Phase**: Upon upload, a random secret code (0-99) is generated and shown **only** to the sender.
+3. **Access Control**: The receiver is presented with four numbered options. Only picking the correct one matches the cryptographic hash on the server to unlock the download.
+4. **Ephemeral Storage**: Cloud drops expire after 15 minutes.
 
 ---
 
